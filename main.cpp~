@@ -267,7 +267,7 @@ public:
 		vec2 w;
 		/*calculate m_world from fusion object*/
 		w = m_world * v;
-		/*motor speed = ((w * motor) + t)*k;*/
+		/*motor speed = (w * motor) + t;*/
 	}
 private:
 	mat2x2 m_world;
