@@ -1,28 +1,31 @@
-#include <iostream>
+#include <iostream> //because c++
 #include <math.h>
 #include <stdio.h>
 
 typedef float scalar_t;
 
-scalar_t ssqrt(const scalar_t& x)
+
+//the arduino may not accept sqrt, sin, cos or radian math so this is used to simplify any needed changes
+scalar_t ssqrt(const scalar_t& x) //square root
 {
 	return sqrt(x);
 }
 
-scalar_t ssin(const scalar_t& x)
+scalar_t ssin(const scalar_t& x) //sine
 {
 	return sin(x);
 }
 
-scalar_t scos(const scalar_t& x)
+scalar_t scos(const scalar_t& x) //cosine
 {
 	return cos(x);
 }
 
-scalar_t srad(const scalar_t& x)
+scalar_t srad(const scalar_t& x) //degree to radian
 {
 	return x * (M_PI / 180.f);
 }
+
 
 class vec2 {
 public:
