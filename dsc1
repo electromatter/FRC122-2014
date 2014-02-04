@@ -1,0 +1,21 @@
+DIO 1 - Pressure switch
+DIO 2 - Quad 1A
+DIO 3 - Quad 1B
+DIO 4 - Quad 2A
+DIO 5 - Quad 2B
+DIO 6 - Quad 3A
+DIO 7 - Quad 3B
+PWM 1 - Drive 1A
+PWN 2 - Drive 1B
+PWM 3 - Drive 2A
+PWM 4 - Drive 2B
+PWM 5 - Drive 3A
+PWM 6 - Drive 3B
+PWM 7 - Winch A
+PWM 8 - Winch B
+PWM 9 - Arm A
+PWM 10 - Arm B
+RELAY 1 - COMPRESSOR
+RELAY 2 - INTAKE ROLLAR
+
+wheels are 120 deg
