@@ -5,6 +5,10 @@ DIO 4 - Quad 2A
 DIO 5 - Quad 2B
 DIO 6 - Quad 3A
 DIO 7 - Quad 3B
+DIO 8 - SCK (Gyro)
+DIO 9 - MISO (Gyro)
+DIO 10 - MOSI (Gyro)
+DIO 11 - SS (Gyro)
 PWM 1 - Drive 1A
 PWN 2 - Drive 1B
 PWM 3 - Drive 2A
