@@ -1,6 +1,7 @@
 #ifndef MOTOR_GROUP_H
 #define MOTOR_GROUP_H
 
+#include "pid.h"
 #include <WPILib.h>
 
 class motorgroup
