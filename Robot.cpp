@@ -3,14 +3,12 @@
 #include "motorgroup.h"
 #include "pid.h"
 #include <math.h>
-#include <tickLib.h>
-#include <drv/timer/timerDev.h>
 
 #define PI (3.1415926535897932384626433832795)
 #define DEGTORAD(d)	((d) * (PI / 180.))
 #define RADTODEG(r)	((r) * (180. / PI))
 
-#define BUILD	(100)
+#define BUILD	(120)
 
 inline float imod(float x, float min, float max)
 {
@@ -35,11 +33,10 @@ inline float qmod(float x, float min, float max)
 
 float angulardrive(float x, float y, float ang, float omega = 0, float radius = 1)
 {
-	//TODO: make a better system for omega -> however seems to work
 	//FIXME: tune omega for the torque of each wheel
-	x = imod(x, -1, 1) * 0.75;
-	y = imod(y, -1, 1) * 0.75;
-	omega = imod(omega, -1, 1) * 0.25
+	x = imod(x, -1, 1);
+	y = imod(y, -1, 1);
+	omega = imod(omega, -1, 1);
 	return omega + x * sin(DEGTORAD(ang)) + y * cos(DEGTORAD(ang));
 }
 
@@ -50,7 +47,7 @@ class RobotDemo : public SimpleRobot
 	Relay r, cmp;
 	Solenoid sa, sb, sc;
 	float a;
-	float r;
+	float sp;
 	double t;
 	double dt;
 	l3gd20 gyro;
@@ -58,6 +55,9 @@ class RobotDemo : public SimpleRobot
 	lsm303a acc;
 	Gyro gyrob;
 	AnalogChannel tempb;
+	AnalogChannel arma;
+	AnalogChannel armb;
+	pid anglepid;
 
 public:
 	RobotDemo() : ma(1, 2, 2, 3),
@@ -72,14 +72,16 @@ public:
 	              sb(2),
 	              sc(3),
 	              a(0),
-	              r(0),
+	              sp(0),
 	              t(time()),
 	              dt(0),
 	              gyro(),
 	              mag(),
 	              acc(),
 	              gyrob(1),
-	              tempb(2)
+	              tempb(2),
+	              arma(3),
+	              armb(4)
 	{
 		gyro.start();
 		acc.start();
@@ -99,9 +101,9 @@ public:
 		float th = gyro.getangle();
 		a = qmod(th * dt + a, -180, 180);
 		lcd->PrintfLine(DriverStationLCD::kUser_Line1, "BUILD: %i", BUILD);
-		//lcd->PrintfLine(DriverStationLCD::kUser_Line2, "%f", gyrob.GetAngle());
-		//lcd->PrintfLine(DriverStationLCD::kUser_Line3, "%f", ma.get());
-		//lcd->PrintfLine(DriverStationLCD::kUser_Line4, "%f", mb.get());
+		lcd->PrintfLine(DriverStationLCD::kUser_Line2, "%f", gyrob.GetAngle());
+		lcd->PrintfLine(DriverStationLCD::kUser_Line3, "%f", arma.GetVoltage());
+		lcd->PrintfLine(DriverStationLCD::kUser_Line4, "%f", armb.GetVoltage());
 		//lcd->PrintfLine(DriverStationLCD::kUser_Line5, "%f", aa);
 		lcd->UpdateLCD();
 	}
@@ -117,9 +119,8 @@ public:
 
 	void Autonomous()
 	{
-		//TODO: reset state for autonomous
+		//TODO: reset state for autonomous, Autonomous
 		while (IsAutonomous()) {
-			//TODO: Autonomous. cv?
 			dt = deltat(t);
 			feed();
 			Wait(0.005);
@@ -131,62 +132,105 @@ public:
 		//joystick assignments: ja(main x-y drive), jb(turning)
 		Joystick ja(1), jb(2), jc(3);
 		a = 0;
-		r = 0;
+		sp = 0;
 		gyrob.Reset();
 		ma.reset();
 		mb.reset();
 		mc.reset();
+		
+		//anglepid.params(1, -0.025, 0, 0);//-0.000375);
 		while (IsOperatorControl())
 		{
 			float x = ja.GetRawAxis(1);//ja.x
 			float y = -ja.GetRawAxis(2);//ja.y is reversed
-			float t = jb.GetRawAxis(1);//jb.y
+			float theta = jb.GetRawAxis(1);//jb.y
+			dt = deltat(t);
+
+			sa.Set(false);
+			sb.Set(false);
+			sc.Set(false);
 			
 			//solenoids:
-			if (ja.GetRawButton(7))//close
+			if (jc.GetRawButton(4))//open
 				sa.Set(true);
-			else
-				sa.Set(false);
+			else if (jc.GetRawButton(5))//close
+				sc.Set(true);
 			
-			if (ja.GetRawButton(8))//release
+			if (jc.GetRawButton(3))//release
 				sb.Set(true);
 			else
 				sb.Set(false);
-			
-			if (ja.GetRawButton(9))//open
-				sc.Set(true);
-			else
-				sc.Set(false);
 			
 			if (!d.Get())//compressor
 				cmp.Set(Relay::kForward);
 			else
 				cmp.Set(Relay::kOff);
 			
+			//deadband
+			if (theta > -0.111 && theta < 0.111)
+				theta = 0;
+			
 			//turning
-			r = qmod(r + t * dt, -180, 180);
-			float c = qmod(gyrob.GetAngle() - r, -180, 180);
-			float ang = c * -0.025;//FIXME: tune angle pid -> replace with external pid
+			sp = qmod(sp + theta * 1.5, -180, 180);
+
+			if (jb.GetRawButton(3))
+				sp = 0;
+			if (jb.GetRawButton(4))
+				sp = -90;
+			if (jb.GetRawButton(2))
+				sp = 180;
+			if (jb.GetRawButton(5))
+				sp = 90;
 			
-			x *= 0.75;
-			y *= 0.75;
+			float c = qmod(gyrob.GetAngle(), -180, 180);
+			//FIXME: tune angle pid -> replace with external pid
+			float ang = qmod(gyrob.GetAngle() - sp, -180, 180) * -0.025;
 			
-			ma.set(angulardrive(x, y, 30 + c, t + ang));
-			mb.set(angulardrive(x, y, -90 + c, t + ang));
-			mc.set(angulardrive(x, y, 150 + c, t + ang));
-			md.set(0);//wind winch -> -1
-			me.set(0);//arm
+			if (ja.GetRawButton(11)) {
+				a = 0;
+				sp = 0;
+				gyrob.Reset();
+				ma.reset();
+				mb.reset();
+				mc.reset();
+			}
 			
+			float pwm[3];
+			float maxpwm = 0;
+			
+			pwm[0] = angulardrive(x, y, 30 + c, ang);
+			pwm[1] = angulardrive(x, y, -90 + c, ang);
+			pwm[2] = angulardrive(x, y, 150 + c, ang);
+			
+			for (int i = 0; i < 3; i++)
+				if (fabs(pwm[i]) > maxpwm)
+					maxpwm = pwm[i];
+
+			for (int i = 0; i < 3; i++)
+				if (maxpwm > 1)
+					pwm[i] /= maxpwm;
+			
+			ma.set(pwm[0]);
+			mb.set(pwm[1]);
+			mc.set(pwm[2]);
+			
+			if (jc.GetRawButton(1))//wind winch -> -1
+				md.set(-1);
+			else
+				md.set(0);
+
 			//TODO: arm pid
+			//Arm
+			if (!(jc.GetRawAxis(2) < -0.25 && jc.GetRawAxis(2) > 0.25))
+			me.set(jc.GetRawAxis(2));
 			
-			if (ja.GetRawButton(6))//roller
-				r.Set(Relay::kForward);//in
-			else if (ja.GetRawButton(4))
-				r.Set(Relay::kReverse);//out
-			else 
+			if (jc.GetRawButton(9))//roller
+				r.Set(Relay::kReverse);//in
+			else if (jc.GetRawButton(11))
+				r.Set(Relay::kForward);//out
+			else
 				r.Set(Relay::kOff);
 			
-			dt = deltat(t);
 			feed();
 			Wait(0.005);
 		}
