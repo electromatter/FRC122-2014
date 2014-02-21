@@ -18,6 +18,7 @@ void pid::params(float sp, float p, float i, float d)
 	reset();
 }
 
+//TODO: accept dt as an input
 float pid::input(float x, float setpoint)
 {
 	float e = x * m_sp - setpoint;
