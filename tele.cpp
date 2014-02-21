@@ -1,5 +1,14 @@
 #include "robot.h"
 
+static float angulardrive(float x, float y, float ang, float omega = 0, float radius = 1)
+{
+	//FIXME: tune omega for the torque of each wheel
+	x = imod(x, -1, 1);
+	y = imod(y, -1, 1);
+	omega = imod(omega, -1, 1);
+	return omega + x * sin(DEGTORAD(ang)) + y * cos(DEGTORAD(ang));
+}
+
 void robot::OperatorControl()
 {
 	//joystick assignments: ja(main x-y drive), jb(turning)
