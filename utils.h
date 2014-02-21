@@ -12,4 +12,7 @@
 #define imod(x, min, max)	((x) < (min)? (min) : ((x) > (max) ? (max) : (x)))
 #define qmod(x, min, max)	((x) - (min) < 0 ? fmod((x) + (min), (max) - (min)) - (min) : fmod((x) - (min), (max) - (min)) + (min))
 
+extern double time();
+extern double deltat(double& t);
+
 #endif
