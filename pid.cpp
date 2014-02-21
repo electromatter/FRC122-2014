@@ -1,21 +1,5 @@
 #include "pid.h"
 
-#include <vxWorks.h>
-#include <tickLib.h>
-#include <drv/timer/timerDev.h>
-
-double time()
-{
-	return ((double)tickGet()) / (double)sysClkRateGet();
-}
-
-double deltat(double& t)
-{
-	double dt = time() - t;
-	t = time();
-	return dt;
-}
-
 pid::pid(float sp, float p, float i, float d)
 {
 	params(sp, p, i, d);
@@ -45,6 +29,10 @@ float pid::input(float x, float setpoint)
 		pwm = m_p * e;
 	} else {
 		m_int += e * dt;
+		if (dt > 0)
+			de /= dt;
+		else
+			de = 0;
 		pwm = m_p * e + m_i * m_int + m_d * de;
 	}
 	m_it++;
